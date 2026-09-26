@@ -26,49 +26,39 @@ class Connection
     /** Almacen en memoria para poder correr la demo sin MySQL levantado. */
     private static array $tablaEnMemoria = [];
 
+    /** Instancia única de la conexión. */
+    private static ?Connection $instance = null;
+
     /**
-     * ❌ METODO MAL APLICADO: obtener()
-     *    Devuelve una instancia nueva cada vez que se lo llama.
-     *    Con 40 consultas por request, el sistema abre 40 conexiones.
+     * Constructor privado para impedir que se creen instancias
+     * directamente desde fuera de la clase.
+     */
+    private function __construct()
+    {
+    }
+
+    /**
+     * Devuelve la única instancia de Connection.
      */
     public static function obtener(): Connection
     {
-        return new Connection();
-    }
+        if (self::$instance === null) {
+            self::$instance = new Connection();
+        }
 
-    /*
-     * ✅ FORMA CORRECTA — Singleton:
-     *
-     * private static ?Connection $instance = null;
-     *
-     * private function __construct(private PDO $pdo) {}
-     *
-     * public static function getInstance(array $config): Connection
-     * {
-     *     if (self::$instance === null) {
-     *         $dsn = "mysql:host={$config['host']};dbname={$config['name']};charset=utf8mb4";
-     *         self::$instance = new Connection(
-     *             new PDO($dsn, $config['user'], $config['pass'], [
-     *                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-     *             ])
-     *         );
-     *     }
-     *     return self::$instance;
-     * }
-     *
-     * Ejercicio: por que el constructor tiene que ser private?
-     * Respuesta: para que nadie pueda hacer new Connection() desde afuera
-     * y romper la garantia de instancia unica.
-     */
+        return self::$instance;
+    }
 
     public function ejecutar(string $sql): void
     {
         try {
             self::$tablaEnMemoria[] = $sql;
         } catch (Throwable $e) {
-            // ❌ MAL APLICADO: la excepcion se traga y el sistema sigue.
-            //    El pedido "se guardo" aunque no se guardo nada.
-            //    ✅ Loguear y relanzar: throw new RuntimeException('...', 0, $e);
+            throw new RuntimeException(
+                'No se pudo ejecutar la operación.',
+                0,
+                $e
+            );
         }
     }
 
