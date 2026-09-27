@@ -2,22 +2,51 @@
 /**
  * ============================================================================
  *  SISTEMA HEREDADO DEL LABORATORIO
- *  Patron esperado: ADAPTER (estructural)
+ *  Patron aplicado: ADAPTER (estructural)
  * ============================================================================
  *
- *  CONTEXTO: el laboratorio ya tenia un sistema de avisos hecho por otro
- *  proveedor. No lo podemos modificar: lo usan tambien Recepcion y Facturacion.
+ *  DEUDA CORREGIDA
+ *     Antes, nuestro sistema modificaba directamente una clase de terceros
+ *     y tambien copiaba su comportamiento en otra clase.
  *
- *  ❌ DEUDA SEMBRADA
- *     1. Alguien "resolvio" la incompatibilidad copiando el cuerpo de
- *        sendMessage() dentro de nuestro codigo (ver copiaDeLegacyEnNuestroSistema).
- *     2. Otro alguien agrego el metodo send() DENTRO de la clase heredada,
- *        modificando codigo de un tercero.
+ *  SOLUCION
+ *     LegacyNotifierAdapter actua como ADAPTER.
+ *     Implementa nuestro contrato Notification y traduce la llamada
+ *     send() de nuestro sistema a sendMessage() del sistema heredado.
  *
- *  ✅ FORMA CORRECTA
- *     Un Adapter que implemente NUESTRO contrato y traduzca la llamada.
- *     La incompatibilidad queda encerrada en un unico archivo.
+ *     Nuestro sistema conoce Notification.
+ *     El Adapter conoce tanto Notification como LegacyNotifier.
+ *
+ *  CONSECUENCIA NEGATIVA
+ *     Se agrega una clase intermedia y una pequeña capa de indirección.
+ *
+ *     Esto aumenta ligeramente la cantidad de clases, pero evita modificar
+ *     el sistema heredado y concentra la incompatibilidad en un unico lugar.
+ * ============================================================================ */
+
+
+/**
  * ============================================================================
+ *  CONTRATO DE NUESTRO SISTEMA
+ * ============================================================================
+ *
+ * Nuestro sistema trabaja con este contrato.
+ * No necesita conocer la interfaz real del sistema heredado.
+ */
+
+interface Notification
+{
+    public function send(string $message): void;
+}
+
+
+/**
+ * ============================================================================
+ *  SISTEMA LEGACY
+ * ============================================================================
+ *
+ * Esta clase pertenece al proveedor externo.
+ * No debe modificarse.
  */
 
 class LegacyNotifier
@@ -27,61 +56,36 @@ class LegacyNotifier
     {
         echo "[LEGACY] {$text}<br>";
     }
+}
+
+
+/**
+ * ============================================================================
+ *  ADAPTER
+ * ============================================================================
+ *
+ * LegacyNotifierAdapter adapta la interfaz del sistema heredado
+ * al contrato que necesita nuestro sistema.
+ *
+ * COMPOSICION:
+ * el Adapter tiene una instancia de LegacyNotifier.
+ */
+
+final class LegacyNotifierAdapter implements Notification
+{
+    private LegacyNotifier $legacy;
+
+    public function __construct(LegacyNotifier $legacy)
+    {
+        $this->legacy = $legacy;
+    }
 
     /**
-     * ❌ METODO MAL APLICADO: send()
-     *    Fue agregado por nosotros DENTRO de una clase de terceros.
-     *    En la proxima actualizacion del proveedor este metodo desaparece
-     *    y el sistema se rompe sin que nadie sepa por que.
-     *    ✅ La adaptacion va afuera, en LegacyNotifierAdapter.
+     * Traduce nuestro metodo send() al metodo sendMessage()
+     * que utiliza el sistema heredado.
      */
     public function send(string $message): void
     {
-        $this->sendMessage($message);
+        $this->legacy->sendMessage($message);
     }
 }
-
-/**
- * ❌ CLASE MAL APLICADA
- *    Copia y pega del comportamiento del sistema heredado "para no depender de el".
- *    Resultado: dos implementaciones que hay que mantener sincronizadas a mano.
- */
-class CopiaDeLegacyEnNuestroSistema
-{
-    public function avisar(string $texto): void
-    {
-        echo "[LEGACY] {$texto}<br>";   // ❌ duplicacion pura
-    }
-}
-
-/*
- * ============================================================================
- *  ✅ FORMA CORRECTA — ADAPTER
- * ============================================================================
- *
- * final class LegacyNotifierAdapter implements Notification
- * {
- *     // COMPOSICION: el adapter TIENE el sistema viejo adentro
- *     public function __construct(private LegacyNotifier $legacy) {}
- *
- *     public function send(string $message): void
- *     {
- *         $this->legacy->sendMessage($message);   // unica traduccion del sistema
- *     }
- * }
- *
- * Uso:
- *   $notificacion = new LegacyNotifierAdapter(new LegacyNotifier());
- *   $notificacion->send('Pedido creado');
- *
- * Estructura:
- *   Nuestro sistema -> Notification <- Adapter -> LegacyNotifier
- *
- * ----------------------------------------------------------------------------
- * EJERCICIO 3 (TP): borrar el metodo send() de LegacyNotifier y la clase
- * CopiaDeLegacyEnNuestroSistema, y hacer que todo pase por el Adapter.
- *
- * PREGUNTA PARA EL PR: si manana el proveedor cambia sendMessage() por
- * dispatch(), cuantos archivos de tu sistema cambian?
- * ============================================================================
- */
