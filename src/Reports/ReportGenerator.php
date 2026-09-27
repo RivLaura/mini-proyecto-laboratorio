@@ -2,98 +2,138 @@
 /**
  * ============================================================================
  *  GENERACION DE REPORTES
- *  Patron esperado: DECORATOR (estructural)
+ *  Patron aplicado: DECORATOR (estructural)
  * ============================================================================
  *
- *  ❌ DEUDA SEMBRADA
- *     El metodo recibe banderas booleanas para activar agregados.
- *     Con 3 banderas hay 8 combinaciones dentro del mismo metodo.
- *     Con 5 banderas hay 32. El metodo se vuelve imposible de probar.
- *     Ademas, en la llamada nadie entiende que significa generate(true, false, true).
+ *  DEUDA CORREGIDA
+ *     Antes, ReportGenerator recibia varias banderas booleanas para decidir
+ *     que agregados aplicar.
  *
- *  ✅ FORMA CORRECTA
- *     Un contrato Report + decoradores que envuelven al reporte base.
- *     Cada agregado es una clase que se puede combinar en tiempo de ejecucion.
+ *  SOLUCION
+ *     Se define el contrato Report.
+ *     BasicReport representa el reporte base.
+ *     Los agregados se implementan como decoradores que envuelven otro Report.
+ *
+ *     Cada decorador agrega una responsabilidad sin modificar el reporte
+ *     original ni agregar parametros booleanos.
+ *
+ *  CONSECUENCIA NEGATIVA
+ *     El orden de los decoradores puede modificar el resultado final.
+ *
+ *     Por ejemplo, firmar antes de convertir a PDF no necesariamente produce
+ *     el mismo resultado que convertir a PDF antes de firmar.
+ *
+ *     Por eso, el orden de los decoradores debe documentarse cuando exista
+ *     una dependencia entre ellos.
  * ============================================================================
  */
 
-class ReportGenerator
+
+/**
+ * ============================================================================
+ *  CONTRATO REPORT
+ * ============================================================================
+ *
+ * Todos los reportes y decoradores deben cumplir la misma interfaz.
+ */
+
+interface Report
 {
-    /**
-     * ❌ METODO MAL APLICADO: generate()
-     *    Sintoma: "boolean trap". El llamador escribe generate(true, false, true)
-     *    y seis meses despues nadie recuerda cual bandera era cual.
-     *    Viola OCP: agregar "codigo QR" implica un parametro mas y un if mas.
-     */
-    public function generate(
-        string $contenido,
-        bool $conFirmaDigital = false,
-        bool $conPdf = false,
-        bool $conMarcaDeAgua = false
-    ): string {
-        $reporte = "Reporte: {$contenido}";
+    public function generate(): string;
+}
 
-        if ($conFirmaDigital) {
-            $reporte .= ' + firma digital';
-        }
 
-        if ($conPdf) {
-            $reporte .= ' + PDF';
-        }
+/**
+ * ============================================================================
+ *  REPORTE BASE
+ * ============================================================================
+ *
+ * Contiene solamente la informacion original del reporte.
+ */
 
-        if ($conMarcaDeAgua) {
-            $reporte .= ' + marca de agua';
-        }
+final class BasicReport implements Report
+{
+    private string $contenido;
 
-        // ❌ El proximo agregado suma otro parametro y otro if.
-        return $reporte;
+    public function __construct(string $contenido)
+    {
+        $this->contenido = $contenido;
+    }
+
+    public function generate(): string
+    {
+        return "Reporte: {$this->contenido}";
     }
 }
 
-/*
+
+/**
  * ============================================================================
- *  ✅ FORMA CORRECTA — DECORATOR
+ *  DECORADOR DE FIRMA DIGITAL
  * ============================================================================
  *
- * interface Report
- * {
- *     public function generate(): string;
- * }
- *
- * final class BasicReport implements Report
- * {
- *     public function __construct(private string $contenido) {}
- *
- *     public function generate(): string
- *     {
- *         return "Reporte: {$this->contenido}";
- *     }
- * }
- *
- * final class DigitalSignatureDecorator implements Report
- * {
- *     public function __construct(private Report $report) {}   // envuelve
- *
- *     public function generate(): string
- *     {
- *         return $this->report->generate() . ' + firma digital';
- *     }
- * }
- *
- * Uso:
- *   $reporte = new BasicReport('Pedido 1');
- *   $reporte = new DigitalSignatureDecorator($reporte);
- *   $reporte = new PdfReportDecorator($reporte);
- *   echo $reporte->generate();
- *
- * Encadenamiento:
- *   BasicReport -> Signature -> Pdf -> Watermark
- *
- * ----------------------------------------------------------------------------
- * EJERCICIO 4 (TP): implementar PdfReportDecorator y WatermarkDecorator.
- *
- * CONSECUENCIA A JUSTIFICAR EN EL PR: el orden de los decoradores cambia el
- * resultado. Firmar y despues pasar a PDF no es lo mismo que al reves.
- * Como documentan esa restriccion para el resto del equipo?
- * ============================================================================
+ * Envuelve otro Report y agrega la firma digital.
  */
+
+final class DigitalSignatureDecorator implements Report
+{
+    private Report $report;
+
+    public function __construct(Report $report)
+    {
+        $this->report = $report;
+    }
+
+    public function generate(): string
+    {
+        return $this->report->generate() . ' + firma digital';
+    }
+}
+
+
+/**
+ * ============================================================================
+ *  EJERCICIO 4 — DECORADOR PDF
+ * ============================================================================
+ *
+ * Agrega la generacion en formato PDF sin modificar el reporte original.
+ */
+
+final class PdfReportDecorator implements Report
+{
+    private Report $report;
+
+    public function __construct(Report $report)
+    {
+        $this->report = $report;
+    }
+
+    public function generate(): string
+    {
+        return $this->report->generate() . ' + PDF';
+    }
+}
+
+
+/**
+ * ============================================================================
+ *  EJERCICIO 4 — DECORADOR MARCA DE AGUA
+ * ============================================================================
+ *
+ * Agrega la marca de agua sin modificar el reporte original.
+ */
+
+final class WatermarkDecorator implements Report
+{
+    private Report $report;
+
+    public function __construct(Report $report)
+    {
+        $this->report = $report;
+    }
+
+    public function generate(): string
+    {
+        return $this->report->generate() . ' + marca de agua';
+    }
+}
