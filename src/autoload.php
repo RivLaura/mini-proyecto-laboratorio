@@ -1,20 +1,36 @@
 <?php
 
 spl_autoload_register(function (string $class): void {
-    $srcPath = __DIR__;
+    static $classMap = null;
 
-    $iterator = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($srcPath)
-    );
+    if ($classMap === null) {
+        $classMap = [];
 
-    foreach ($iterator as $file) {
-        if (
-            $file->isFile() &&
-            $file->getExtension() === 'php' &&
-            $file->getBasename('.php') === $class
-        ) {
-            require_once $file->getPathname();
-            return;
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator(
+                __DIR__,
+                FilesystemIterator::SKIP_DOTS
+            )
+        );
+
+        foreach ($iterator as $file) {
+            if (!$file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $className = $file->getBasename('.php');
+
+            if (isset($classMap[$className])) {
+                throw new RuntimeException(
+                    "Nombre de archivo PHP duplicado: {$className}"
+                );
+            }
+
+            $classMap[$className] = $file->getPathname();
         }
+    }
+
+    if (isset($classMap[$class])) {
+        require_once $classMap[$class];
     }
 });
