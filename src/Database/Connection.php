@@ -37,6 +37,17 @@ class Connection
     {
     }
 
+    private function __clone(): void
+    {
+    }
+
+    public function __wakeup(): void
+    {
+        throw new LogicException(
+            'No se permite deserializar la conexión.'
+        );
+    }
+
     /**
      * Devuelve la única instancia de Connection.
      */
