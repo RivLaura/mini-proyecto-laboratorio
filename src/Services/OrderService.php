@@ -64,17 +64,14 @@ class OrderService
         $order = new Order($id, $paciente, $total, $tipoPaciente);
         $order->guardar();
 
-        // ---- 4. Notificacion (deberia ser una Factory) ----
-        // ❌ MISMO if que ya existe en NotificationSender::enviar()
-        if ($tipoNotificacion === 'email') {
-            $email = new EmailNotification();
-            $email->enviarEmail($destino, 'Pedido creado', "Pedido {$id} por $ {$total}");
-        }
+        // ---- 4. Notificacion mediante Factory ----
+        $notificacion = NotificationFactory::create(
+            $tipoNotificacion,
+            $destino,
+            'Pedido creado'
+        );
 
-        if ($tipoNotificacion === 'sms') {
-            $sms = new SmsNotification();
-            $sms->mandarSms($destino, "Pedido {$id} por $ {$total}");
-        }
+        $notificacion->send("Pedido {$id} por $ {$total}");
 
         // ---- 5. Avisos internos (deberia ser un Observer) ----
         $eventos = new OrderEvents();
