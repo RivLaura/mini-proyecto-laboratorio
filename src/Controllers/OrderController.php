@@ -35,8 +35,14 @@ class OrderController
         $monto    = (float) ($_GET['monto'] ?? 15000);
         $tipo     = $_GET['tipo'] ?? 'obra_social';
 
-        // ❌ 2. Regla de negocio dentro del controlador (deberia ser Strategy)
-        $total = $tipo === 'obra_social' ? $monto * 0.7 : $monto;
+        // // Calculo delegado a una estrategia de precios.
+       $estrategia = match ($tipo) {
+            'obra_social' => new InsuranceStrategy(),
+            'prepaga' => new PrepaidStrategy(0.20),
+            default => new PrivatePatientStrategy(),
+        };
+
+        $total = (new PriceCalculator($estrategia))->calculate($monto);
 
         // ❌ 3. SQL dentro del controlador (deberia ser Repository)
         $conexion = Connection::obtener();
@@ -70,12 +76,37 @@ class OrderController
      * }
      */
 
-    /**
-     * ❌ METODO MAL APLICADO: index()
-     *    Delega en la vista la consulta a la base de datos (ver views/orders.php).
-     */
     public function index(): void
     {
+        $pedidos = [
+            [
+                'id' => 1,
+                'paciente' => 'Juan Perez',
+                'monto' => 15000,
+                'tipo' => 'obra_social',
+            ],
+            [
+                'id' => 2,
+                'paciente' => 'Ana Gomez',
+                'monto' => 22000,
+                'tipo' => 'particular',
+            ],
+        ];
+
+        foreach ($pedidos as $indice => $pedido) {
+            $estrategia = match ($pedido['tipo']) {
+                'obra_social' => new InsuranceStrategy(),
+                'prepaga' => new PrepaidStrategy(0.20),
+                default => new PrivatePatientStrategy(),
+            };
+
+            $calculadora = new PriceCalculator($estrategia);
+
+            $pedidos[$indice]['total'] = $calculadora->calculate(
+                $pedido['monto']
+            );
+        }
+
         require __DIR__ . '/../../views/orders.php';
     }
 

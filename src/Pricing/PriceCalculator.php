@@ -1,25 +1,25 @@
 <?php
 /**
- * ============================================================================
- *  CALCULO DE PRECIOS
- *  Patron esperado: STRATEGY (comportamiento)
- * ============================================================================
+ * La estrategia principal calcula el precio sin IVA.
  *
- *  ❌ DEUDA SEMBRADA
- *     Un switch concentra TODOS los algoritmos de precio.
- *     Cada tipo de paciente nuevo obliga a modificar esta clase.
- *     Los porcentajes estan escritos a mano y repetidos en otros archivos.
+ * Si no se indica taxStrategy, se utiliza la estrategia principal
+ * tambien para calcular el precio con IVA.
  *
- *  ✅ FORMA CORRECTA
- *     Interfaz PricingStrategy + una clase por algoritmo + composicion.
- *     Agregar "prepaga" pasa a ser AGREGAR una clase, no MODIFICAR esta.
- * ============================================================================
+ * Para conservar el comportamiento original de jubilados:
+ * new PriceCalculator(
+ *     new RetiredPatientStrategy(),
+ *     new PrivatePatientStrategy()
+ * );
+ *
+ * Esta configuracion aplica el descuento sin IVA y utiliza
+ * el importe completo como base del calculo con IVA.
  */
 
 final class PriceCalculator
 {
     public function __construct(
-        private PricingStrategy $strategy
+        private PricingStrategy $strategy,
+        private ?PricingStrategy $taxStrategy = null
     ) {
     }
 
@@ -30,6 +30,8 @@ final class PriceCalculator
 
     public function calculateWithTax(float $amount): float
     {
-        return $this->calculate($amount) * 1.21;
+        $strategy = $this->taxStrategy ?? $this->strategy;
+
+        return $strategy->calculate($amount) * 1.21;
     }
 }
