@@ -1,5 +1,6 @@
 # Configuracion local: NUNCA se versiona
-/config/database.php
+/config/*
+!/config/database.example.php
 
 # Dependencias
 /vendor/
