@@ -80,13 +80,23 @@ class OrderController
     }
 
     /**
-     * ❌ METODO MAL APLICADO: report()
-     *    Usa banderas booleanas ilegibles (ver ReportGenerator).
+     * report()
+     *    Arma el reporte por composicion de decoradores (ver src/Reports)
+     *    en lugar de generate('...', true, true, true).
+     *    Mismo resultado y mismo orden que las banderas originales.
+     *    El echo sigue aca: separar la vista es parte del refactor MVC.
      */
     public function report(): void
     {
-        $generador = new ReportGenerator();
-        echo $generador->generate('Pedidos del dia', true, true, true);
+        $reporte = new WatermarkDecorator(
+            new PdfReportDecorator(
+                new DigitalSignatureDecorator(
+                    new BasicReport('Pedidos del dia')
+                )
+            )
+        );
+
+        echo $reporte->generate();
     }
 }
 
