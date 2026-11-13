@@ -8,6 +8,9 @@
 .env
 *.log
 
+# Cache de PHPUnit (generado tras cada ejecución de pruebas)
+.phpunit.result.cache
+
 # Basura del editor y del sistema
 .vscode/
 .idea/
