@@ -2,111 +2,40 @@
 /**
  * ============================================================================
  *  SERVICIO DE PEDIDOS
- *  Patron aplicado: FACADE (estructural) + separacion en servicios cohesivos
+ *  Patron aplicado: FACADE (estructural) + servicios cohesivos (SRP)
  * ============================================================================
  *
  *  DEUDA CORREGIDA
- *     Antes, procesarPedidoCompleto() concentraba validacion, calculo,
- *     persistencia, notificacion, eventos, reportes y presentacion.
+ *     procesarPedidoCompleto() validaba, calculaba descuentos (0.7 / 0.5),
+ *     persistia, repetia el if de notificaciones, creaba los avisos, armaba
+ *     el reporte con banderas booleanas e imprimia HTML. Todo con new
+ *     adentro: imposible de probar sin base de datos ni servidor de mail.
  *
  *  SOLUCION
- *     OrderService actua como FACADE.
- *     Coordina servicios especializados mediante dependencias inyectadas
- *     por constructor.
+ *     OrderService es una FACHADA: solo COORDINA. Cada paso lo resuelve el
+ *     componente que ya existe en el proyecto, inyectado por constructor:
  *
- *     Cada servicio tiene una responsabilidad concreta y la fachada
- *     solamente coordina el flujo.
+ *       Validacion     -> OrderValidator
+ *       Precio         -> OrderPricingService -> PriceCalculator + PricingStrategy (Strategy, #14)
+ *       Persistencia   -> OrderRepository (Repository, #13)
+ *       Notificacion   -> OrderNotificationService -> NotificationFactory (Factory, #15)
+ *       Avisos         -> OrderEvents + OrderObserver (Observer)
+ *       Reporte        -> OrderReportService -> Report + decoradores (Decorator)
+ *
+ *     La fachada no contiene porcentajes, SQL, if por tipo de notificacion
+ *     ni HTML: devuelve un OrderResult y la presentacion queda en MVC.
+ *     El armado de todas las piezas esta en OrderServiceFactory.
+ *
+ *     EJERCICIO 6: procesarPedidoCompleto() tiene 8 lineas, sin perder
+ *     ninguno de los pasos del metodo original.
  *
  *  CONSECUENCIA NEGATIVA
- *     La complejidad no desaparece: se distribuye entre varias clases.
- *     Esto aumenta la cantidad de archivos y dependencias, pero permite
- *     probar y modificar cada responsabilidad de forma independiente.
+ *     La complejidad no desaparece: se reparte entre mas clases y el
+ *     constructor recibe seis dependencias. Para entender el flujo completo
+ *     hay que recorrer varios archivos, y la fachada puede volver a crecer
+ *     si alguien empieza a poner reglas de negocio aca ("una fachada
+ *     coordina; si decide, volvimos al punto de partida").
  * ============================================================================
- */
-
-
-/**
- * ============================================================================
- *  SERVICIOS COHESIVOS
- * ============================================================================
- */
-
-final class OrderValidator
-{
-    public function validate(string $paciente, float $monto): void
-    {
-        if (trim($paciente) === '') {
-            throw new InvalidArgumentException('Falta el paciente');
-        }
-
-        if ($monto <= 0) {
-            throw new InvalidArgumentException('Monto invalido');
-        }
-    }
-}
-
-
-final class OrderPricingService
-{
-    public function calculate(float $monto, string $tipoPaciente): float
-    {
-        if ($tipoPaciente === 'obra_social') {
-            return $monto * 0.7;
-        }
-
-        if ($tipoPaciente === 'jubilado') {
-            return $monto * 0.5;
-        }
-
-        return $monto;
-    }
-}
-
-
-final class OrderRepository
-{
-    public function save(Order $order): void
-    {
-        $order->guardar();
-    }
-}
-
-
-final class OrderNotificationService
-{
-    public function notify(
-        int $id,
-        float $total,
-        string $tipoNotificacion,
-        string $destino
-    ): void {
-        if ($tipoNotificacion === 'email') {
-            $email = new EmailNotification();
-            $email->enviarEmail(
-                $destino,
-                'Pedido creado',
-                "Pedido {$id} por $ {$total}"
-            );
-        }
-
-        if ($tipoNotificacion === 'sms') {
-            $sms = new SmsNotification();
-            $sms->mandarSms(
-                $destino,
-                "Pedido {$id} por $ {$total}"
-            );
-        }
-    }
-}
-
-
-/**
- * ============================================================================
- *  FACADE
- * ============================================================================
- *
- * OrderService coordina los servicios.
- * No implementa directamente las reglas de cada responsabilidad.
  */
 
 final class OrderService
@@ -117,10 +46,14 @@ final class OrderService
         private OrderRepository $repository,
         private OrderNotificationService $notifications,
         private OrderEvents $events,
-        private ReportGenerator $reports
+        private OrderReportService $reports
     ) {
     }
 
+    /**
+     * @throws InvalidArgumentException si el pedido no es valido o el tipo
+     *                                  de notificacion no esta soportado.
+     */
     public function procesarPedidoCompleto(
         int $id,
         string $paciente,
@@ -128,29 +61,14 @@ final class OrderService
         string $tipoPaciente,
         string $tipoNotificacion,
         string $destino
-    ): Order {
+    ): OrderResult {
         $this->validator->validate($paciente, $monto);
-
         $total = $this->pricing->calculate($monto, $tipoPaciente);
-
-        $order = new Order(
-            $id,
-            $paciente,
-            $total,
-            $tipoPaciente
-        );
-
+        $order = new Order($id, $paciente, $total, $tipoPaciente);
         $this->repository->save($order);
-
-        $this->notifications->notify(
-            $id,
-            $total,
-            $tipoNotificacion,
-            $destino
-        );
-
+        $this->notifications->notify($order, $tipoNotificacion, $destino);
         $this->events->pedidoCreado($order);
-
-        return $order;
+        $reporte = $this->reports->paraPedido($order);
+        return new OrderResult($order, $total, $reporte);
     }
 }
