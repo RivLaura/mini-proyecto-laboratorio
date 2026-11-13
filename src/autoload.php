@@ -1,7 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 spl_autoload_register(function (string $class): void {
     static $classMap = null;
+
+    // La integración conserva nombres de clases sin namespaces.
+    // Cada clase o interfaz debe tener su propio archivo PHP.
+    if (str_contains($class, '\\')) {
+        return;
+    }
 
     if ($classMap === null) {
         $classMap = [];
@@ -18,11 +26,16 @@ spl_autoload_register(function (string $class): void {
                 continue;
             }
 
+            // No es necesario incluir el propio autoloader.
+            if ($file->getPathname() === __FILE__) {
+                continue;
+            }
+
             $className = $file->getBasename('.php');
 
             if (isset($classMap[$className])) {
                 throw new RuntimeException(
-                    "Nombre de archivo PHP duplicado: {$className}"
+                    "Archivo PHP duplicado para la clase: {$className}"
                 );
             }
 
