@@ -8,7 +8,7 @@
  * (ver OrderServiceFactory). Agregar un tipo de paciente es agregar una
  * entrada al mapa, no modificar esta clase.
  */
-final class OrderPricingService
+class OrderPricingService
 {
     /**
      * @param array<string, PricingStrategy> $strategies

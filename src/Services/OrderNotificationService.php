@@ -7,7 +7,7 @@
  * notificadores concretos. Se conservan el asunto y el texto del mensaje
  * que usaba procesarPedidoCompleto().
  */
-final class OrderNotificationService
+class OrderNotificationService
 {
     /** @throws InvalidArgumentException si el tipo no esta soportado. */
     public function notify(Order $order, string $tipoNotificacion, string $destino): void

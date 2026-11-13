@@ -6,7 +6,7 @@
  * lugar de imprimir HTML y cortar con return, lanza una excepcion para
  * que la capa de presentacion decida como mostrar el error.
  */
-final class OrderValidator
+class OrderValidator
 {
     /** @throws InvalidArgumentException */
     public function validate(string $paciente, float $monto): void

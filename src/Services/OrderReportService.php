@@ -5,7 +5,7 @@
  * Reemplaza a generate("Pedido {$id}", true, true, false):
  * firma digital + PDF, en el orden acordado para el equipo.
  */
-final class OrderReportService
+class OrderReportService
 {
     public function paraPedido(Order $order): string
     {
