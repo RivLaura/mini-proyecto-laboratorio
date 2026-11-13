@@ -6,121 +6,75 @@
  * ============================================================================
  *
  *  DEUDA CORREGIDA
- *     Antes, esta clase creaba y ejecutaba directamente cada notificacion.
+ *     Antes, pedidoCreado() creaba y ejecutaba a mano cada aviso
+ *     (EmailNotification, SmsNotification y el dashboard). Sumar un aviso
+ *     obligaba a modificar esta clase y, si uno fallaba, se cortaba la cadena.
  *
  *  SOLUCION
  *     OrderEvents actua como SUBJECT.
- *     Mantiene una coleccion de observadores que implementan OrderObserver.
+ *     Mantiene una coleccion de observadores que implementan OrderObserver
+ *     y les avisa por polimorfismo. El Subject conoce la INTERFAZ, no las
+ *     clases concretas (EmailObserver, DashboardObserver, SmsObserver).
  *
- *     El Subject conoce la INTERFAZ, no las clases concretas.
+ *     Si un observador falla, el resto igual recibe el evento y al final
+ *     se informa el error: no se corta la cadena ni se oculta el fallo.
  *
  *  CONSECUENCIA NEGATIVA
- *     Ya no se puede saber desde esta clase, de forma directa, quienes
- *     reciben el evento.
- *
+ *     Leyendo el codigo del pedido ya no se ve quien se entera del evento.
  *     Se pierde trazabilidad estatica, pero se gana desacoplamiento.
- *     Puede compensarse con nombres explicitos, logs y tests.
+ *     Se compensa con nombres explicitos en cada observador, con el
+ *     registro centralizado en un unico lugar (quien arma los objetos)
+ *     y con pruebas que verifican que todos reciben el evento.
  * ============================================================================
- */
-
-
-/**
- * ============================================================================
- *  INTERFAZ OBSERVER
- * ============================================================================
- */
-
-interface OrderObserver
-{
-    public function update(Order $order): void;
-}
-
-
-/**
- * ============================================================================
- *  OBSERVADORES CONCRETOS
- * ============================================================================
- */
-
-final class EmailObserver implements OrderObserver
-{
-    public function update(Order $order): void
-    {
-        echo "Email enviado para el pedido {$order->id}<br>";
-    }
-}
-
-
-final class DashboardObserver implements OrderObserver
-{
-    public function update(Order $order): void
-    {
-        echo "[DASHBOARD] actualizado para el pedido {$order->id}<br>";
-    }
-}
-
-
-/**
- * ============================================================================
- *  EJERCICIO 5 — SMS OBSERVER
- * ============================================================================
- *
- * Se agrega un nuevo observador implementando la misma interfaz.
- *
- * OrderEvents NO necesita ser modificado.
- */
-
-final class SmsObserver implements OrderObserver
-{
-    public function update(Order $order): void
-    {
-        echo "SMS enviado para el pedido {$order->id}<br>";
-    }
-}
-
-
-/**
- * ============================================================================
- *  SUBJECT
- * ============================================================================
- *
- * OrderEvents cumple el rol de Subject.
- *
- * Importante:
- *     Esta clase solo conoce OrderObserver.
- *     No conoce EmailObserver, DashboardObserver ni SmsObserver.
  */
 
 class OrderEvents
 {
-    /**
-     * Coleccion de observadores.
-     *
-     * @var OrderObserver[]
-     */
+    /** @var OrderObserver[] */
     private array $observers = [];
 
-
-    /**
-     * Agrega un observador.
-     */
     public function subscribe(OrderObserver $observer): void
     {
         $this->observers[] = $observer;
     }
 
-
     /**
-     * Notifica a todos los observadores.
+     * Notifica a todos los observadores registrados.
      *
-     * POLIMORFISMO:
-     * cada observador implementa update(), pero cada uno puede
-     * ejecutar una accion diferente.
+     * Cada observador se ejecuta aunque uno anterior haya fallado.
+     * Si hubo fallos, se lanza una unica excepcion al final con el detalle
+     * de todos ellos (la primera excepcion queda como "previous").
+     *
+     * @throws RuntimeException si al menos un observador fallo.
      */
     public function pedidoCreado(Order $order): void
     {
+        $errores = [];
+
         foreach ($this->observers as $observer) {
-            $observer->update($order);
+            try {
+                $observer->update($order);
+            } catch (Throwable $error) {
+                $errores[] = $error;
+            }
+        }
+
+        if ($errores !== []) {
+            $detalle = array_map(
+                fn(Throwable $e): string => $e->getMessage(),
+                $errores
+            );
+
+            throw new RuntimeException(
+                sprintf(
+                    'Fallaron %d observador(es) del pedido %d: %s',
+                    count($errores),
+                    $order->id,
+                    implode('; ', $detalle)
+                ),
+                0,
+                $errores[0]
+            );
         }
     }
 }
