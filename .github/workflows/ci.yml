@@ -25,5 +25,8 @@ jobs:
       - name: Instalar dependencias de Composer
         run: composer install --no-interaction --prefer-dist
 
+      - name: Preparar configuracion de pruebas
+        run: cp config/database.example.php config/database.php
+
       - name: Ejecutar PHPUnit
         run: vendor/bin/phpunit
