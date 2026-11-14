@@ -18,9 +18,53 @@ Sistema de gestión de pedidos de un laboratorio de análisis clínicos.
 
 ## Cómo levantarlo
 
-1. Copiar la carpeta dentro de `C:\xampp\htdocs\`.
-2. Iniciar Apache desde el panel de XAMPP (MySQL **no** hace falta).
-3. Abrir: `http://localhost/mini-proyecto-laboratorio/public/index.php`
+Requisitos: PHP 8.0 o superior, instalado localmente o mediante XAMPP.
+
+## Descargar y configurar 
+
+1. Clonar el repositorio y entrar en su carpeta: 
+
+  ```bash
+   git clone https://github.com/RivLaura/mini-proyecto-laboratorio.git
+   cd mini-proyecto-laboratorio
+   ```
+2. Crear la configuración local desde el archivo de ejemplo.
+
+  En Powershell:
+
+  ```powershell
+   Copy-Item config/database.example.php config/database.php
+   ```
+
+  También se puede copiar manualmente `database.example.php` dentro
+   de `config` y nombrar la copia `database.php`. 
+
+   El archivo `config/database.php` está excluido de Git.
+   Los valores pueden permanecer vacíos porque la persistencia está
+   simulada en memoria y no se necesita MySQL.
+
+## Opción A — PHP desde la terminal
+
+Desde la carpeta del proyecto, ejecutar:
+
+```bash
+php -S localhost:8000 -t public
+```
+
+Probar estas direcciones:
+
+- Crear: http://localhost:8000/index.php?accion=crear
+- Listar: http://localhost:8000/index.php?accion=listar
+- Reporte: http://localhost:8000/index.php?accion=reporte
+
+Para detener el servidor, presionar Ctrl + C.
+
+## Opción B — XAMPP
+
+Iniciar el servidor desde la carpeta del proyecto: 
+  - Copiar la carpeta dentro de `C:\xampp\htdocs\`.
+  - Iniciar Apache desde el panel de XAMPP (MySQL **no** hace falta).
+  - Abrir: `http://localhost/mini-proyecto-laboratorio/public/index.php`
 
 Acciones disponibles:
 

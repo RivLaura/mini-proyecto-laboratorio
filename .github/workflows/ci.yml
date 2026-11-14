@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - integracion/entrega-tp
+  push:
+    branches:
+      - integracion/entrega-tp
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Instalar dependencias de Composer
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Preparar configuracion de pruebas
+        run: cp config/database.example.php config/database.php
+
+      - name: Ejecutar PHPUnit
+        run: vendor/bin/phpunit

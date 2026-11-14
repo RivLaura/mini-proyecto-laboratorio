@@ -1,5 +1,6 @@
 # Configuracion local: NUNCA se versiona
-/config/database.php
+/config/*
+!/config/database.example.php
 
 # Dependencias
 /vendor/
@@ -7,6 +8,9 @@
 # Entorno
 .env
 *.log
+
+# Cache de PHPUnit (generado tras cada ejecución de pruebas)
+.phpunit.result.cache
 
 # Basura del editor y del sistema
 .vscode/
