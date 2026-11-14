@@ -3,9 +3,11 @@ name: CI
 on:
   pull_request:
     branches:
+      - main
       - integracion/entrega-tp
   push:
     branches:
+      - main
       - integracion/entrega-tp
 
 jobs:
