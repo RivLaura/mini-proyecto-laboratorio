@@ -24,67 +24,77 @@
 class OrderController
 {
     /**
-     * ❌ METODO MAL APLICADO: create()
-     *    Mezcla las tres capas de MVC dentro de un solo metodo.
+     * ✅ METODO APLICADO: create()
+     *    Recibe la entrada HTTP, delega el procesamiento al Facade
+     *    y selecciona la vista. Maximo 5 lineas ejecutables.
+     *    Sin SQL, sin reglas de negocio, sin echo.
+     *    Captura excepciones de validacion para presentar una respuesta controlada.
      */
     public function create(): void
     {
-        // ❌ 1. Entrada sin validar ni sanitizar
-        $id       = (int) ($_GET['id'] ?? 1);
-        $paciente = $_GET['paciente'] ?? 'Juan Perez';
-        $monto    = (float) ($_GET['monto'] ?? 15000);
-        $tipo     = $_GET['tipo'] ?? 'obra_social';
+        $entrada = $this->leerEntradaHttp();
 
-        // ❌ 2. Regla de negocio dentro del controlador (deberia ser Strategy)
-        $total = $tipo === 'obra_social' ? $monto * 0.7 : $monto;
+        try {
+            $resultado = OrderServiceFactory::create()->procesarPedidoCompleto(
+                $entrada['id'],
+                $entrada['paciente'],
+                $entrada['monto'],
+                $entrada['tipoPaciente'],
+                $entrada['tipoNotificacion'],
+                $entrada['destino']
+            );
 
-        // ❌ 3. SQL dentro del controlador (deberia ser Repository)
-        $conexion = Connection::obtener();
-        $conexion->ejecutar("INSERT INTO orders VALUES ({$id}, '{$paciente}', {$total})");
-
-        // ❌ 4. Notificacion resuelta otra vez con if (deberia ser Factory)
-        $notificador = new NotificationSender();
-        $notificador->enviar('email', 'paciente@mail.com', "Pedido {$id} creado");
-
-        // ❌ 5. HTML impreso desde el controlador (deberia ser una View)
-        echo "<h1>Pedido creado</h1>";
-        echo "<p>Paciente: {$paciente}</p>";       // ❌ ademas, sin escapar: XSS
-        echo "<p>Total: $ {$total}</p>";
+            require __DIR__ . '/../../views/pedido-creado.php';
+        } catch (InvalidArgumentException $e) {
+            http_response_code(400);
+            $error = $e->getMessage();
+            require __DIR__ . '/../../views/error.php';
+        }
     }
 
-    /*
-     * ✅ FORMA CORRECTA:
-     *
-     * public function create(): void
-     * {
-     *     $order = new Order(
-     *         (int) $_POST['id'],
-     *         (string) $_POST['paciente'],
-     *         (float) $_POST['monto'],
-     *         (string) $_POST['tipo']
-     *     );
-     *
-     *     $this->facade->createOrder($order);          // toda la logica, una linea
-     *
-     *     require __DIR__ . '/../../views/orders.php'; // la vista solo presenta
-     * }
+    /**
+     * Lee y normaliza los parametros de entrada HTTP con valores por defecto.
+     * No contiene reglas de negocio: solo extrae y castea los valores del request.
      */
+    private function leerEntradaHttp(): array
+    {
+        return [
+            'id'             => (int) ($_GET['id'] ?? 1),
+            'paciente'       => $_GET['paciente'] ?? 'Juan Perez',
+            'monto'          => (float) ($_GET['monto'] ?? 15000),
+            'tipoPaciente'   => $_GET['tipo'] ?? 'obra_social',
+            'tipoNotificacion' => $_GET['notificacion'] ?? 'email',
+            'destino'        => $_GET['destino'] ?? 'paciente@mail.com',
+        ];
+    }
 
     /**
-     * ❌ METODO MAL APLICADO: index()
-     *    Delega en la vista la consulta a la base de datos (ver views/orders.php).
+     * ✅ METODO APLICADO: index()
+     *    Prepara los datos del listado y los pasa a la vista.
+     *    La vista no consulta la base de datos ni calcula descuentos.
+     *
+     *    Nota: este listado usa datos de ejemplo preparados en el controlador.
+     *    No representa un listado real de pedidos guardados, porque la persistencia
+     *    actual es una simulación en memoria (Connection) sin base de datos real
+     *    configurada y no persiste entre solicitudes HTTP independientes.
      */
     public function index(): void
     {
+        // Datos de ejemplo para la demostracion academica con persistencia simulada.
+        // No consultar BD ni asumir persistencia entre requests HTTP independientes.
+        $pedidos = [
+            ['id' => 1, 'paciente' => 'Juan Perez', 'total' => 10500, 'tipo' => 'obra_social'],
+            ['id' => 2, 'paciente' => 'Ana Gomez',   'total' => 22000, 'tipo' => 'particular'],
+        ];
+
         require __DIR__ . '/../../views/orders.php';
     }
 
     /**
-     * report()
-     *    Arma el reporte por composicion de decoradores (ver src/Reports)
-     *    en lugar de generate('...', true, true, true).
-     *    Mismo resultado y mismo orden que las banderas originales.
-     *    El echo sigue aca: separar la vista es parte del refactor MVC.
+     * ✅ METODO APLICADO: report()
+     *    Genera el reporte mediante composicion de decoradores
+     *    y delega la presentacion a la vista.
+     *    Sin echo directo.
      */
     public function report(): void
     {
@@ -94,9 +104,9 @@ class OrderController
                     new BasicReport('Pedidos del dia')
                 )
             )
-        );
+        )->generate();
 
-        echo $reporte->generate();
+        require __DIR__ . '/../../views/reporte.php';
     }
 }
 

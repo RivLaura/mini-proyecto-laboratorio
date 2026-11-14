@@ -19,40 +19,23 @@
 
 class Order
 {
-    // ❌ MAL APLICADO: estado publico y mutable.
-    //    $order->amount = -50000;  es valido y rompe el sistema en silencio.
-    public int $id;
-    public string $patient;
-    public float $amount;
-    public string $patientType;
+    /**
+     * ✅ Propiedades readonly: solo se asignan en el constructor y no pueden
+     *    modificarse desde fuera. Compatible con los consumidores existentes
+     *    que leen $order->id, $order->patient, $order->amount, $order->patientType.
+     */
+    public readonly int $id;
+    public readonly string $patient;
+    public readonly float $amount;
+    public readonly string $patientType;
 
     public function __construct(int $id, string $patient, float $amount, string $patientType)
     {
-        // ❌ MAL APLICADO: sin ninguna validacion. El objeto puede nacer invalido.
         $this->id          = $id;
         $this->patient     = $patient;
         $this->amount      = $amount;
         $this->patientType = $patientType;
     }
-
-    /*
-     * ✅ FORMA CORRECTA:
-     *
-     * public function __construct(
-     *     public readonly int $id,
-     *     public readonly string $patient,
-     *     public readonly float $amount,
-     *     public readonly string $patientType
-     * ) {
-     *     if ($amount < 0) {
-     *         throw new InvalidArgumentException('El importe no puede ser negativo');
-     *     }
-     *     if (trim($patient) === '') {
-     *         throw new InvalidArgumentException('El paciente es obligatorio');
-     *     }
-     * }
-     */
-
 
     /*
      * ✅ FORMA CORRECTA: sacar la persistencia del modelo.
@@ -73,30 +56,5 @@ class Order
      *         ]);
      *     }
      * }
-     */
-
-    /**
-     * ❌ METODO MAL APLICADO: calcularTotal()
-     *    Cadena de if con las reglas de precio de TODOS los tipos de paciente.
-     *    Agregar "prepaga" obliga a modificar el modelo => viola Abierto/Cerrado.
-     */
-    public function calcularTotal(): float
-    {
-        if ($this->patientType === 'particular') {
-            return $this->amount;
-        }
-
-        if ($this->patientType === 'obra_social') {
-            return $this->amount * 0.7;
-        }
-
-        // ❌ Y aca alguien va a pegar el proximo if. Y el siguiente.
-        return $this->amount;
-    }
-
-    /*
-     * ✅ FORMA CORRECTA: delegar en una estrategia.
-     *
-     * $total = (new PriceCalculator(new InsuranceStrategy()))->calculate($order->amount);
      */
 }

@@ -24,6 +24,6 @@ final class SmsNotification implements Notification
 
     public function send(string $message): void
     {
-        echo "[SMS] a {$this->numero}: {$message}<br>";
+        echo "[SMS] a " . htmlspecialchars((string) $this->numero, ENT_QUOTES, 'UTF-8') . ": {$message}<br>";
     }
 }
