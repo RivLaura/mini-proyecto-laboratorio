@@ -8,6 +8,6 @@ final class WhatsAppNotification implements Notification
 
     public function send(string $message): void
     {
-        echo "[WHATSAPP] a {$this->numero}: {$message}<br>";
+        echo "[WHATSAPP] a " . htmlspecialchars((string) $this->numero, ENT_QUOTES, 'UTF-8') . ": {$message}<br>";
     }
 }

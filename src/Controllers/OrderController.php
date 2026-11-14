@@ -28,21 +28,27 @@ class OrderController
      *    Recibe la entrada HTTP, delega el procesamiento al Facade
      *    y selecciona la vista. Maximo 5 lineas ejecutables.
      *    Sin SQL, sin reglas de negocio, sin echo.
+     *    Captura excepciones de validacion para presentar una respuesta controlada.
      */
     public function create(): void
     {
         $entrada = $this->leerEntradaHttp();
 
-        $resultado = OrderServiceFactory::create()->procesarPedidoCompleto(
-            $entrada['id'],
-            $entrada['paciente'],
-            $entrada['monto'],
-            $entrada['tipoPaciente'],
-            $entrada['tipoNotificacion'],
-            $entrada['destino']
-        );
+        try {
+            $resultado = OrderServiceFactory::create()->procesarPedidoCompleto(
+                $entrada['id'],
+                $entrada['paciente'],
+                $entrada['monto'],
+                $entrada['tipoPaciente'],
+                $entrada['tipoNotificacion'],
+                $entrada['destino']
+            );
 
-        require __DIR__ . '/../../views/pedido-creado.php';
+            require __DIR__ . '/../../views/pedido-creado.php';
+        } catch (InvalidArgumentException $e) {
+            $error = htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+            require __DIR__ . '/../../views/error.php';
+        }
     }
 
     /**
@@ -65,9 +71,16 @@ class OrderController
      * ✅ METODO APLICADO: index()
      *    Prepara los datos del listado y los pasa a la vista.
      *    La vista no consulta la base de datos ni calcula descuentos.
+     *
+     *    Nota: este listado usa datos de ejemplo preparados en el controlador.
+     *    No representa un listado real de pedidos guardados, porque la persistencia
+     *    actual es una simulación en memoria (Connection) sin base de datos real
+     *    configurada y no persiste entre solicitudes HTTP independientes.
      */
     public function index(): void
     {
+        // Datos de ejemplo para la demostracion academica con persistencia simulada.
+        // No consultar BD ni asumir persistencia entre requests HTTP independientes.
         $pedidos = [
             ['id' => 1, 'paciente' => 'Juan Perez', 'total' => 10500, 'tipo' => 'obra_social'],
             ['id' => 2, 'paciente' => 'Ana Gomez',   'total' => 22000, 'tipo' => 'particular'],

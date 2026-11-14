@@ -27,6 +27,6 @@ final class EmailNotification implements Notification
 
     public function send(string $message): void
     {
-        echo "[EMAIL] para {$this->destinatario} | {$this->asunto}: {$message}<br>";
+        echo "[EMAIL] para " . htmlspecialchars((string) $this->destinatario, ENT_QUOTES, 'UTF-8') . " | {$this->asunto}: {$message}<br>";
     }
 }

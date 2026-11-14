@@ -210,12 +210,11 @@ final class MvcTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // 11. Los datos inválidos producen una respuesta controlada.
+    // 11. Los datos inválidos producen una respuesta controlada (no error 500).
     // ------------------------------------------------------------------
     public function testDatosInvalidosProducenRespuestaControlada(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Falta el paciente');
+        ob_start();
 
         $this->ejecutarRuta('crear', [
             'id'             => 1,
@@ -225,6 +224,35 @@ final class MvcTest extends TestCase
             'notificacion'   => 'ninguna',
             'destino'        => '',
         ]);
+
+        $salida = ob_get_clean();
+
+        // Debe mostrar la vista de error, no un error 500
+        $this->assertStringContainsString('<h1>Error de validacion</h1>', $salida);
+        $this->assertStringContainsString('Falta el paciente', $salida);
+        // No debe contener HTML crudo sin escapar
+        $this->assertStringNotContainsString('<script>', $salida);
+    }
+
+    // 11b. Prueba de integración: datos inválidos no dejan salida cruda ni error 500.
+    public function testEntradaInvalidaNoDevuelveError500(): void
+    {
+        ob_start();
+
+        $this->ejecutarRuta('crear', [
+            'id'             => 1,
+            'paciente'       => '',
+            'monto'          => 100,
+            'tipo'           => 'particular',
+            'notificacion'   => 'ninguna',
+            'destino'        => '',
+        ]);
+
+        $salida = ob_get_clean();
+
+        $this->assertStringContainsString('Error de validacion', $salida);
+        $this->assertStringNotContainsString('Fatal error', $salida);
+        $this->assertStringNotContainsString('Uncaught', $salida);
     }
 
     // ------------------------------------------------------------------
@@ -304,5 +332,27 @@ final class MvcTest extends TestCase
         // 10000 * 0.7 = 7000 (Strategy: InsuranceStrategy con 30% de descuento)
         $this->assertSame(7000.0, $resultado->total);
         $this->assertIsString($resultado->reporte);
+    }
+
+    // 15. Escape de datos en notificaciones: caracteres especiales en el destinatario.
+    public function testDestinatarioEscapadoEnNotificaciones(): void
+    {
+        ob_start();
+
+        $this->ejecutarRuta('crear', [
+            'id'             => 1,
+            'paciente'       => 'Paciente Test',
+            'monto'          => 1000,
+            'tipo'           => 'particular',
+            'notificacion'   => 'email',
+            'destino'        => '<script>alert("xss")</script>@mail.com',
+        ]);
+
+        $salida = ob_get_clean();
+
+        // El destinatario debe estar escapado en la notificacion
+        $this->assertStringNotContainsString('<script>', $salida);
+        $this->assertStringContainsString('&lt;script&gt;', $salida);
+        $this->assertStringContainsString('&quot;xss&quot;', $salida);
     }
 }
