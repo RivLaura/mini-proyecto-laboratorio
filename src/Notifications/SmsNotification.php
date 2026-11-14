@@ -16,14 +16,14 @@
  * ============================================================================
  */
 
-class SmsNotification
+final class SmsNotification implements Notification
 {
-    /**
-     * ❌ METODO MAL APLICADO: mandarSms()
-     *    ✅ send(string $message): void, igual que el resto de las notificaciones.
-     */
-    public function mandarSms(string $numero, string $texto): void
+    public function __construct(private string $numero)
     {
-        echo "[SMS] a {$numero}: {$texto}<br>";
+    }
+
+    public function send(string $message): void
+    {
+        echo "[SMS] a {$this->numero}: {$message}<br>";
     }
 }
