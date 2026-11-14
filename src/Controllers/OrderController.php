@@ -46,7 +46,8 @@ class OrderController
 
             require __DIR__ . '/../../views/pedido-creado.php';
         } catch (InvalidArgumentException $e) {
-            $error = htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+            http_response_code(400);
+            $error = $e->getMessage();
             require __DIR__ . '/../../views/error.php';
         }
     }

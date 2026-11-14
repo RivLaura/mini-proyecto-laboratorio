@@ -210,7 +210,7 @@ final class MvcTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // 11. Los datos inválidos producen una respuesta controlada (no error 500).
+    // 11. Los datos inválidos producen una respuesta controlada (HTTP 400, no error 500).
     // ------------------------------------------------------------------
     public function testDatosInvalidosProducenRespuestaControlada(): void
     {
@@ -232,6 +232,8 @@ final class MvcTest extends TestCase
         $this->assertStringContainsString('Falta el paciente', $salida);
         // No debe contener HTML crudo sin escapar
         $this->assertStringNotContainsString('<script>', $salida);
+        // Debe responder con código HTTP 400, no 200 OK
+        $this->assertSame(400, http_response_code());
     }
 
     // 11b. Prueba de integración: datos inválidos no dejan salida cruda ni error 500.
@@ -253,6 +255,8 @@ final class MvcTest extends TestCase
         $this->assertStringContainsString('Error de validacion', $salida);
         $this->assertStringNotContainsString('Fatal error', $salida);
         $this->assertStringNotContainsString('Uncaught', $salida);
+        // Código de estado HTTP 400 para solicitud inválida
+        $this->assertSame(400, http_response_code());
     }
 
     // ------------------------------------------------------------------
