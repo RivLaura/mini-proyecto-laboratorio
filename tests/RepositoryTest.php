@@ -75,17 +75,26 @@ final class RepositoryTest extends TestCase
         $conexion = Connection::obtener();
         $cantidadInicial = count($conexion->consultas());
 
-        $service = new OrderService();
+        $service = OrderServiceFactory::create();
 
-        $this->expectOutputRegex('/Pedido 303 procesado/');
+        // La fachada ya no imprime la presentacion; la salida proviene de
+        // los observadores, que se ejecutan aunque no se notifique al paciente.
+        $this->expectOutputRegex('/\[DASHBOARD\] actualizado para el pedido 303/');
 
-        $service->procesarPedidoCompleto(
+        $resultado = $service->procesarPedidoCompleto(
             303,
             'Paciente Integracion',
             1000.0,
             'obra_social',
             'ninguna',
             ''
+        );
+
+        $this->assertInstanceOf(OrderResult::class, $resultado);
+        $this->assertEqualsWithDelta(700.0, $resultado->total, 0.001);
+        $this->assertSame(
+            'Reporte: Pedido 303 + firma digital + PDF',
+            $resultado->reporte
         );
 
         $consultas = $conexion->consultas();
