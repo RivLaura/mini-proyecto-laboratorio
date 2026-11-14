@@ -12,6 +12,12 @@ class OrderNotificationService
     /** @throws InvalidArgumentException si el tipo no esta soportado. */
     public function notify(Order $order, string $tipoNotificacion, string $destino): void
     {
+        // 'ninguna' indica que no se notifica al paciente. Los avisos internos
+        // (Observer) se emiten igual, porque la fachada los dispara aparte.
+        if ($tipoNotificacion === 'ninguna') {
+            return;
+        }
+
         NotificationFactory::create($tipoNotificacion, $destino, 'Pedido creado')
             ->send("Pedido {$order->id} por $ {$order->amount}");
     }

@@ -111,9 +111,9 @@ final class FactoryTest extends TestCase
             '/\[WHATSAPP\] a destino-prueba: Pedido 901 por \$ 1000<br>/'
         );
 
-        $service = new OrderService();
+        $service = OrderServiceFactory::create();
 
-        $service->procesarPedidoCompleto(
+        $resultado = $service->procesarPedidoCompleto(
             901,
             'Paciente Factory',
             1000.0,
@@ -121,6 +121,9 @@ final class FactoryTest extends TestCase
             'whatsapp',
             'destino-prueba'
         );
+
+        $this->assertInstanceOf(OrderResult::class, $resultado);
+        $this->assertEqualsWithDelta(1000.0, $resultado->total, 0.001);
 
         $consultas = $conexion->consultas();
 
