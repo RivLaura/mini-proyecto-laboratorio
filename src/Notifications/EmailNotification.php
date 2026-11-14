@@ -17,15 +17,16 @@
  * ============================================================================
  */
 
-class EmailNotification
+final class EmailNotification implements Notification
 {
-    /**
-     * ❌ METODO MAL APLICADO: enviarEmail()
-     *    El nombre y la firma son propios de esta clase.
-     *    ✅ Deberia llamarse send(string $message): void, definido por la interfaz.
-     */
-    public function enviarEmail(string $destinatario, string $asunto, string $cuerpo): void
+    public function __construct(
+        private string $destinatario,
+        private string $asunto = 'Pedido del laboratorio'
+    ) {
+    }
+
+    public function send(string $message): void
     {
-        echo "[EMAIL] para {$destinatario} | {$asunto}: {$cuerpo}<br>";
+        echo "[EMAIL] para {$this->destinatario} | {$this->asunto}: {$message}<br>";
     }
 }

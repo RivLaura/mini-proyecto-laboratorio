@@ -1,4 +1,5 @@
 <?php
+
 /**
  * ============================================================================
  *  AVISOS AL CREARSE UN PEDIDO
@@ -28,11 +29,15 @@ class OrderEvents
     public function pedidoCreado(Order $order): void
     {
         // ❌ llamadas directas y encadenadas
-        $email = new EmailNotification();
-        $email->enviarEmail('paciente@mail.com', 'Pedido creado', "Pedido {$order->id}");
+        $email = NotificationFactory::create(
+            'email',
+            'paciente@mail.com',
+            'Pedido creado'
+        );
+        $email->send("Pedido {$order->id}");
 
-        $sms = new SmsNotification();
-        $sms->mandarSms('3704000000', "Pedido {$order->id} creado");
+        $sms = NotificationFactory::create('sms', '3704000000');
+        $sms->send("Pedido {$order->id} creado");
 
         // ❌ Si esta linea lanza una excepcion, el mail ya salio pero el
         //    dashboard nunca se entera. Estado inconsistente y silencioso.
