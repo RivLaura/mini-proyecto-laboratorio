@@ -19,67 +19,23 @@
  * ============================================================================
  */
 
-// ❌ MAL APLICADO: carga manual. Cada clase nueva obliga a editar este archivo.
-require_once __DIR__ . '/../src/Database/Connection.php';
-require_once __DIR__ . '/../src/Models/Order.php';
-require_once __DIR__ . '/../src/Pricing/PriceCalculator.php';
-require_once __DIR__ . '/../src/Notifications/EmailNotification.php';
-require_once __DIR__ . '/../src/Notifications/SmsNotification.php';
-require_once __DIR__ . '/../src/Notifications/NotificationSender.php';
-require_once __DIR__ . '/../src/Legacy/LegacyNotifier.php';
-require_once __DIR__ . '/../src/Reports/ReportGenerator.php';
-require_once __DIR__ . '/../src/Events/OrderEvents.php';
-require_once __DIR__ . '/../src/Services/OrderService.php';
-require_once __DIR__ . '/../src/Controllers/OrderController.php';
+require_once __DIR__ . '/../src/autoload.php';
 
-/*
- * ✅ FORMA CORRECTA (reemplaza a los 11 require de arriba):
- *
- * spl_autoload_register(function (string $class): void {
- *     $file = __DIR__ . '/../src/' . str_replace('\\', '/', $class) . '.php';
- *     if (is_file($file)) {
- *         require_once $file;
- *     }
- * });
- */
-
-// ❌ MAL APLICADO: credenciales en el código fuente y dentro del repositorio.
-//    Si el repo es público, la credencial es pública.
-//    Además, cada integrante edita esta línea => conflicto en cada merge.
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'laboratorio');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-
-/*
- * ✅ FORMA CORRECTA:
- *   $config = require __DIR__ . '/../config/database.php';   // ignorado por git
- *   El repositorio versiona config/database.example.php con valores vacíos.
- */
+$config = require __DIR__ . '/../config/database.php';
 
 $accion = $_GET['accion'] ?? 'crear';
 
-// ❌ MAL APLICADO: ruteo con if encadenados. Viola Abierto/Cerrado:
-//    cada pantalla nueva obliga a MODIFICAR este bloque.
 $controller = new OrderController();
 
-if ($accion === 'crear') {
-    $controller->create();
-} elseif ($accion === 'listar') {
-    $controller->index();
-} elseif ($accion === 'reporte') {
-    $controller->report();
+$rutas = [
+    'crear'   => fn() => $controller->create(),
+    'listar'  => fn() => $controller->index(),
+    'reporte' => fn() => $controller->report(),
+];
+
+if (isset($rutas[$accion])) {
+    $rutas[$accion]();
 } else {
+    http_response_code(404);
     echo 'Accion no encontrada';
 }
-
-/*
- * ✅ FORMA CORRECTA: tabla de rutas. Agregar una pantalla ya no modifica el if.
- *
- * $rutas = [
- *     'crear'   => fn() => $controller->create(),
- *     'listar'  => fn() => $controller->index(),
- *     'reporte' => fn() => $controller->report(),
- * ];
- * ($rutas[$accion] ?? fn() => http_response_code(404))();
- */
