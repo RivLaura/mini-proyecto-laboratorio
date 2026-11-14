@@ -21,26 +21,13 @@
 
 class NotificationSender
 {
-    /**
-     * ❌ METODO MAL APLICADO: enviar()
-     *    1. Decide QUE objeto crear y ademas COMO usarlo (dos responsabilidades).
-     *    2. Conoce las clases concretas EmailNotification y SmsNotification.
-     *    3. Conoce las firmas distintas de cada una.
-     */
-    public function enviar(string $tipo, string $destino, string $mensaje): void
-    {
-        if ($tipo === 'email') {
-            $email = new EmailNotification();
-            $email->enviarEmail($destino, 'Pedido del laboratorio', $mensaje);
-        }
-
-        if ($tipo === 'sms') {
-            $sms = new SmsNotification();
-            $sms->mandarSms($destino, $mensaje);
-        }
-
-        // ❌ Si el tipo no existe, no pasa nada y nadie se entera.
-        //    ✅ default => throw new InvalidArgumentException('Tipo no soportado');
+    public function enviar(
+        string $tipo,
+        string $destino,
+        string $mensaje
+    ): void {
+        $notificacion = NotificationFactory::create($tipo, $destino);
+        $notificacion->send($mensaje);
     }
 }
 
